@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { Simulation, UserProfile } from './types';
+import { Simulation } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import SimulationRunner from './components/SimulationRunner';
@@ -14,42 +12,48 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'runner' | 'history'>('dashboard');
-  const [selectedSimulation, setSelectedSimulation] = useState<Simulation | null>(null);
 
   useEffect(() => {
     // Check local storage for existing session
     const savedUser = localStorage.getItem('abe_active_user');
-    if (savedUser) {
+    const token = localStorage.getItem('abe_auth_token');
+    
+    if (savedUser && token) {
       setUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (!user) {
-      setSimulations([]);
-      return;
+  const fetchSimulations = async () => {
+    const token = localStorage.getItem('abe_auth_token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/simulations', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSimulations(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch simulations:", err);
     }
+  };
 
-    const q = query(
-      collection(db, 'simulations'),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const sims = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Simulation));
-      setSimulations(sims);
-    }, (error) => {
-      console.error("Firestore Error (list simulations):", error);
-      // Optional: Show a toast or error message to the user
-    });
-
-    return () => unsubscribe();
+  useEffect(() => {
+    if (user) {
+      fetchSimulations();
+    } else {
+      setSimulations([]);
+    }
   }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('abe_active_user');
+    localStorage.removeItem('abe_auth_token');
     setUser(null);
   };
 
@@ -155,7 +159,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <SimulationHistory simulations={simulations} />
+                <SimulationHistory simulations={simulations} onDelete={fetchSimulations} />
               </motion.div>
             )}
           </AnimatePresence>
