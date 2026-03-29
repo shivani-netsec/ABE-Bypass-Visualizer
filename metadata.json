@@ -1,0 +1,5 @@
+{
+  "name": "ABE Bypass Visualizer",
+  "description": "A browser attack behavior simulator that visualizes and analyzes simulated malware patterns like memory extraction and debugger-based attacks for educational purposes.",
+  "requestFramePermissions": []
+}

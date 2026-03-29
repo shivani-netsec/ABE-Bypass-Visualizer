@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      // Local auth mode: we don't use Firebase Auth service
+      return true;
+    }
+    
+    function isOwner(userId) {
+      // In local mode, we trust the client-provided userId for this educational tool
+      return true;
+    }
+    
+    function isDocOwner() {
+      return true;
+    }
+
+    // Validation Functions
+    function isValidSimulation(data) {
+      return data.userId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.attackType in ['memory-extraction', 'debugger-attachment', 'dll-injection', 'browser-hooking'] &&
+             data.timestamp is number &&
+             data.result in ['success', 'blocked'] &&
+             data.riskLevel in ['low', 'medium', 'high'] &&
+             data.steps is list;
+    }
+
+    match /users/{userId} {
+      allow read, write: if true; // Local profiles stored in localStorage, but this allows syncing if needed
+    }
+
+    match /simulations/{simulationId} {
+      allow read: if true; 
+      allow create: if request.resource.data.userId is string &&
+                      isValidSimulation(request.resource.data);
+      allow update: if request.resource.data.userId == resource.data.userId &&
+                      isValidSimulation(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}
