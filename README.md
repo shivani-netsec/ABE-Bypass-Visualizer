@@ -10,11 +10,11 @@ This project addresses the lack of visibility into such attacks by providing a p
 environment.
 
 # Tech Stack
-Frontend: React.js
+Frontend: React.js,TypeScript,Tailwind CSS,Lucide React,
 
-Backend:Node.js with Express
+Backend:Node.js with Express,MongoDB,Mongoose,Bcryptjs
 
-Database:Google Cloud Firestore
+Database:MongoDB 
 
 # How It Works
 1)User logs into the system
@@ -32,6 +32,5 @@ Database:Google Cloud Firestore
 ## Run Locally
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
