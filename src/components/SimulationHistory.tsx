@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { Simulation } from '../types';
 import { ATTACK_SCENARIOS } from '../services/simulationEngine';
-import { ShieldAlert, ShieldCheck, Search, Trash2, ChevronRight, Filter } from 'lucide-react';
-import { db } from '../firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { ShieldAlert, ShieldCheck, Search, Trash2, ChevronRight } from 'lucide-react';
 import LogsViewer from './LogsViewer';
 
 interface SimulationHistoryProps {
   simulations: Simulation[];
+  onDelete?: () => void;
 }
 
-export default function SimulationHistory({ simulations }: SimulationHistoryProps) {
+export default function SimulationHistory({ simulations, onDelete }: SimulationHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'success' | 'blocked'>('all');
   const [selectedSim, setSelectedSim] = useState<Simulation | null>(null);
@@ -24,8 +23,19 @@ export default function SimulationHistory({ simulations }: SimulationHistoryProp
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this simulation?')) {
+      const token = localStorage.getItem('abe_auth_token');
+      if (!token) return;
+
       try {
-        await deleteDoc(doc(db, 'simulations', id));
+        const response = await fetch(`/api/simulations/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          onDelete?.();
+        }
       } catch (err) {
         console.error("Error deleting simulation:", err);
       }

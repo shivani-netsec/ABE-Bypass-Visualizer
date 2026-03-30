@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { AttackType, Simulation, SimulationStep } from '../types';
-import { ATTACK_SCENARIOS, getRiskLevel, getPreventionTips } from '../services/simulationEngine';
+import { AttackType, SimulationStep } from '../types';
+import { ATTACK_SCENARIOS, getRiskLevel } from '../services/simulationEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, ShieldAlert, ShieldCheck, Terminal, Loader2, CheckCircle2, XCircle, Info, ArrowRight } from 'lucide-react';
 import PreventionTips from './PreventionTips';
@@ -67,20 +65,42 @@ export default function SimulationRunner({ user, onComplete }: SimulationRunnerP
   const handleSave = async () => {
     if (!result || !attackType) return;
     setIsSaving(true);
+    
+    const token = localStorage.getItem('abe_auth_token');
+    if (!token) {
+      alert('You must be logged in to save simulations.');
+      setIsSaving(false);
+      return;
+    }
+
     try {
-      const simulation: Omit<Simulation, 'id'> = {
-        userId: user.uid,
+      const simulationData = {
         name,
-        attackType,
-        timestamp: Date.now(),
-        result,
+        description: ATTACK_SCENARIOS[attackType].description,
         riskLevel: getRiskLevel(steps),
-        steps
+        result,
+        logs: steps.map(s => ({
+          message: `${s.action}: ${s.details}`,
+          type: s.status === 'success' ? 'success' : s.status === 'failed' ? 'error' : 'info'
+        }))
       };
-      await addDoc(collection(db, 'simulations'), simulation);
+
+      const response = await fetch('/api/simulations', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(simulationData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save simulation');
+      }
+
       onComplete();
     } catch (err) {
-      console.error("Firestore Error (create simulation):", err);
+      console.error("API Error (create simulation):", err);
       alert('Failed to save simulation. Please check your connection.');
     } finally {
       setIsSaving(false);
