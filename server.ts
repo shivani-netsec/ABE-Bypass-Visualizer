@@ -17,7 +17,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/abe-by
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+ const PORT = process.env.PORT || 3000;
 
   // Connect to MongoDB
   try {
@@ -135,8 +135,8 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  console.log(`Server running on port ${PORT}`);
+});
 }
 
 startServer().catch((err) => {
